@@ -1,7 +1,15 @@
 import supertest from "supertest";
 import app from "./server";
-import { MYSTERIOUS_ROBED_FIGURE } from "./constants/characters";
-import { CAVE_EXTERIOR } from "./constants/locations";
+import {
+  MYSTERIOUS_ROBED_FIGURE,
+  ADVENTURE_ADMIN,
+  FRIENDLY_ELF,
+} from "./constants/characters";
+import {
+  CAVE_EXTERIOR,
+  HANDFORTH_PARISH_COUNCIL,
+  SANTAS_WORKSHOP,
+} from "./constants/locations";
 
 test("GET / responds with a welcome message from our mysterious robed figure", async () => {
   const response = await supertest(app).get("/");
@@ -10,13 +18,27 @@ test("GET / responds with a welcome message from our mysterious robed figure", a
     location: CAVE_EXTERIOR,
     speech: {
       speaker: MYSTERIOUS_ROBED_FIGURE,
-      text:
-        "Welcome, young adventurer, to the ENDPOINT ADVENTURE. Are you ready for this quest?",
+      text: "Welcome, young adventurer, to the ENDPOINT ADVENTURE. Are you ready for this quest?",
     },
     options: {
       yes: "/quest/accept",
       no: "/quest/decline",
       help: "/help",
+    },
+  });
+});
+
+test("GET /help responds with a helpful descriptive message from our adventure admin", async () => {
+  const response = await supertest(app).get("/help");
+
+  expect(response.body).toStrictEqual({
+    location: HANDFORTH_PARISH_COUNCIL,
+    speech: {
+      speaker: ADVENTURE_ADMIN,
+      text: "This is the endpoint adventure! It's based on the classic 'choose your own adventure' books of ye olden 20th century times. When you visit an endpoint, you're presented with a scene and some text, and then you have a few options to choose from - your simulate turning to a new page by hitting a new endpoint.",
+    },
+    options: {
+      backToStart: "/",
     },
   });
 });
@@ -56,7 +78,7 @@ test("GET /quest/decline responds with an apocalyptic message", async () => {
   expect(response.body.options).toStrictEqual({ restart: "/" });
 });
 
-test.skip("GET /quest/start/impossible responds with instant 'death'", async () => {
+test("GET /quest/start/impossible responds with instant 'death'", async () => {
   const response = await supertest(app).get("/quest/start/impossible");
 
   // there is _some_ location
@@ -72,4 +94,28 @@ test.skip("GET /quest/start/impossible responds with instant 'death'", async () 
 
   // includes option to restart
   expect(response.body.options).toMatchObject({ restart: "/" });
+});
+
+test("GET /quest/start/easy has a friendly elf with easy options", async () => {
+  const response = await supertest(app).get("/quest/start/easy");
+
+  // located in Santa's workshop
+  // friendly elf speaker
+  expect(response.body).toMatchObject({
+    location: SANTAS_WORKSHOP,
+    speech: {
+      speaker: FRIENDLY_ELF,
+    },
+  });
+
+  // Nice message with clues
+  expect(response.body.speech.text).toMatch(/candy/i);
+  expect(response.body.speech.text).toMatch(/happy/i);
+  expect(response.body.speech.text).toMatch(/choose/i);
+
+  // Two options one correct option and one incorrect
+  expect(response.body.options).toStrictEqual({
+    correct: "/quest/start/easy/reindeers",
+    incorrect: "/quest/start/easy/santa",
+  });
 });
